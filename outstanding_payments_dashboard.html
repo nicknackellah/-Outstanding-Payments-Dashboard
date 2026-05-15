@@ -1,0 +1,1990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 Outstanding Payments Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header { text-align: center; color: white; margin-bottom: 30px; }
+        .header h1 { font-size: 2.2em; margin-bottom: 8px; font-weight: 600; }
+        .header p { font-size: 1em; opacity: 0.95; }
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .card-title { font-size: 0.75em; text-transform: uppercase; letter-spacing: 0.5px; color: #666; margin-bottom: 10px; font-weight: 600; }
+        .card-value { font-size: 1.8em; font-weight: bold; margin-bottom: 5px; }
+        .card-subtitle { font-size: 0.85em; color: #999; }
+        .card:nth-child(1) .card-value { color: #333; }
+        .card:nth-child(2) .card-value { color: #2a5c9f; }
+        .card:nth-child(3) .card-value { color: #FF8761; }
+        .card:nth-child(4) .card-value { color: #89CFF0; }
+        .section { background: white; border-radius: 12px; padding: 25px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .section-title { font-size: 1.1em; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; color: #333; }
+        .filter-container { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        .filter-dropdown {
+            padding: 10px 18px;
+            border: 2px solid #e0e0e0;
+            border-radius: 20px;
+            font-size: 0.95em;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.3s;
+            min-width: 200px;
+        }
+        .filter-dropdown:focus { outline: none; border-color: #667eea; }
+        .brand-list { max-height: 500px; overflow-y: auto; }
+        .brand-item {
+            display: grid;
+            grid-template-columns: 2fr 0.8fr 1fr 1fr 1fr 1fr 1fr 1fr 100px;
+            gap: 12px;
+            padding: 12px;
+            border-bottom: 1px solid #f0f0f0;
+            align-items: center;
+            font-size: 0.85em;
+            transition: background 0.2s;
+        }
+        .brand-item:hover { background: #f8f9fa; }
+        .brand-item-header { font-weight: 600; background: #f8f9fa; border-radius: 6px; border-bottom: none; position: sticky; top: 0; z-index: 10; }
+        .brand-name { font-weight: 600; color: #333; }
+        .brand-pic { color: #666; font-size: 0.9em; }
+        .amount { text-align: right; font-weight: 500; color: #555; }
+        .status-badge { padding: 4px 10px; border-radius: 12px; font-size: 0.75em; font-weight: 600; text-align: center; text-transform: uppercase; }
+        .status-current { background: #e8f5e9; color: #2e7d32; }
+        .status-overdue { background: #ffcdd2; color: #c62828; }
+        .invoice-table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+        .invoice-table th { background: #f8f9fa; padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6; position: sticky; top: 0; z-index: 10; }
+        .invoice-table td { padding: 12px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+        .invoice-table tr:hover { background: #f8f9fa; }
+        .invoice-wrapper { max-height: 500px; overflow-y: auto; }
+        .invoice-list { color: #666; line-height: 1.6; }
+        .month-list { color: #888; font-size: 0.95em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Outstanding Payments Dashboard</h1>
+            <p>AR Aging Report as of May 11, 2026</p>
+        </div>
+        <div class="summary-cards">
+            <div class="card"><div class="card-title">Total Outstanding</div><div class="card-value" id="total">฿0</div><div class="card-subtitle">Across all brands</div></div>
+            <div class="card"><div class="card-title">Not Due Yet</div><div class="card-value" id="notdue">฿0</div><div class="card-subtitle">Current period</div></div>
+            <div class="card"><div class="card-title">1-30 Days</div><div class="card-value" id="days30">฿0</div><div class="card-subtitle">Recent overdue</div></div>
+            <div class="card"><div class="card-title">90+ Days</div><div class="card-value" id="days90">฿0</div><div class="card-subtitle">Critical aging</div></div>
+        </div>
+        <div class="section">
+            <div class="section-title"><span>⚠️</span><span>All Brands Ranked by Payment Urgency</span></div>
+            <div class="filter-container">
+                <select class="filter-dropdown" id="picFilter"><option value="">All Brand PICs</option></select>
+                <select class="filter-dropdown" id="statusFilter"><option value="">All Status</option><option value="overdue">Overdue</option><option value="current">Current</option></select>
+            </div>
+            <div class="brand-list">
+                <div class="brand-item brand-item-header">
+                    <div>BRAND</div><div>BRAND PIC</div><div class="amount">OUTSTANDING</div><div class="amount">NOT DUE</div><div class="amount">1-30 DAYS</div><div class="amount">31-60 DAYS</div><div class="amount">61-90 DAYS</div><div class="amount">90+ DAYS</div><div>STATUS</div>
+                </div>
+                <div id="brands"></div>
+            </div>
+        </div>
+        <div class="section">
+            <div class="section-title"><span>⚠️</span><span>Brands with Unpaid Invoices</span></div>
+            <div class="filter-container"><select class="filter-dropdown" id="invFilter"><option value="">All Brand PICs</option></select></div>
+            <div class="invoice-wrapper">
+                <table class="invoice-table">
+                    <thead><tr><th style="width:25%">BRAND/COMPANY</th><th style="width:10%">BRAND PIC</th><th style="width:12%">MONTH</th><th style="width:38%">INVOICE NUMBERS</th><th style="width:15%;text-align:right">AMOUNT</th></tr></thead>
+                    <tbody id="invoices"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+<script>
+const D={
+  "summary": {
+    "total_outstanding": 10465162.240000002,
+    "not_due": 3989280.8300000005,
+    "days_1_30": 1382213.3599999999,
+    "days_31_60": 288148.82,
+    "days_61_90": 109451.3,
+    "days_90_plus": 706787.1000000001
+  },
+  "brands": [
+    {
+      "brand": "Five Dollar Philly Cheese Steaks",
+      "brand_pic": "ICE",
+      "outstanding": 107652.14,
+      "not_due": 0.0,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 107652.14,
+      "status": "Overdue"
+    },
+    {
+      "brand": "Grow Tea.studio",
+      "brand_pic": "JIN",
+      "outstanding": 94760.87,
+      "not_due": 0.0,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 94760.87,
+      "status": "Overdue"
+    },
+    {
+      "brand": "El Mercado",
+      "brand_pic": "NN",
+      "outstanding": 58124.54000000001,
+      "not_due": 0.0,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 58124.54000000001,
+      "status": "Overdue"
+    },
+    {
+      "brand": "Content marketing service  July 15 - Aug 15 2025",
+      "brand_pic": "0",
+      "outstanding": 26750.0,
+      "not_due": 0.0,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 26750.0,
+      "status": "Overdue"
+    },
+    {
+      "brand": "Content marketing service  Aug 2025",
+      "brand_pic": "0",
+      "outstanding": 26750.0,
+      "not_due": 0.0,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 26750.0,
+      "status": "Overdue"
+    },
+    {
+      "brand": "Content marketing service  Sep 2025",
+      "brand_pic": "0",
+      "outstanding": 26750.0,
+      "not_due": 0.0,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 26750.0,
+      "status": "Overdue"
+    },
+    {
+      "brand": "Charcoal",
+      "brand_pic": "KARN",
+      "outstanding": 26236.309999999998,
+      "not_due": 13630.31,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 12606.0,
+      "status": "Overdue"
+    },
+    {
+      "brand": "Content marketing service  JAN 2026",
+      "brand_pic": "0",
+      "outstanding": 32100.0,
+      "not_due": 0.0,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 32100.0,
+      "days_90_plus": 0.0,
+      "status": "Overdue"
+    },
+    {
+      "brand": "AGE Burgers",
+      "brand_pic": "SINGH",
+      "outstanding": 61842.05,
+      "not_due": 0.0,
+      "days_1_30": 20232.5,
+      "days_31_60": 18983.9,
+      "days_61_90": 22625.65,
+      "days_90_plus": 0.0,
+      "status": "Overdue"
+    },
+    {
+      "brand": "Eggday",
+      "brand_pic": "JIN",
+      "outstanding": 137635.25,
+      "not_due": 0.0,
+      "days_1_30": 79471.87,
+      "days_31_60": 58163.38,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Overdue"
+    },
+    {
+      "brand": "Chubby Dough",
+      "brand_pic": "HOUSE",
+      "outstanding": 89709.59,
+      "not_due": 21721.66,
+      "days_1_30": 33160.8,
+      "days_31_60": 34827.13,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Overdue"
+    },
+    {
+      "brand": "Content marketing service  FEB 2026",
+      "brand_pic": "0",
+      "outstanding": 32100.0,
+      "not_due": 0.0,
+      "days_1_30": 0.0,
+      "days_31_60": 32100.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Overdue"
+    },
+    {
+      "brand": "La Meow",
+      "brand_pic": "MILD",
+      "outstanding": 206449.55,
+      "not_due": 90818.82,
+      "days_1_30": 115630.73,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Overdue"
+    },
+    {
+      "brand": "Bella Madre Pizza",
+      "brand_pic": "KARN",
+      "outstanding": 135702.7,
+      "not_due": 60328.5,
+      "days_1_30": 75374.2,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Overdue"
+    },
+    {
+      "brand": "Hunter Poke",
+      "brand_pic": "JIN",
+      "outstanding": 130781.09999999999,
+      "not_due": 63825.34,
+      "days_1_30": 66955.76,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Overdue"
+    },
+    {
+      "brand": "Kaprao Fury",
+      "brand_pic": "SORN",
+      "outstanding": 101362.58,
+      "not_due": 57117.53,
+      "days_1_30": 44245.05,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Overdue"
+    },
+    {
+      "brand": "Self Smoothie",
+      "brand_pic": "KARN",
+      "outstanding": 71396.06,
+      "not_due": 31217.4,
+      "days_1_30": 40178.66,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Overdue"
+    },
+    {
+      "brand": "Sati",
+      "brand_pic": "HOUSE",
+      "outstanding": 65793.66,
+      "not_due": 27504.02,
+      "days_1_30": 38289.64,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Overdue"
+    },
+    {
+      "brand": "StrackYum",
+      "brand_pic": "SINGH",
+      "outstanding": 71055.69,
+      "not_due": 34818.96,
+      "days_1_30": 36236.73,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Overdue"
+    },
+    {
+      "brand": "Bangkok Bob's",
+      "brand_pic": "MILD",
+      "outstanding": 67292.62,
+      "not_due": 32682.6,
+      "days_1_30": 34610.02,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Overdue"
+    },
+    {
+      "brand": "Fish Fat Bowls",
+      "brand_pic": "SINGH",
+      "outstanding": 66590.93,
+      "not_due": 33837.4,
+      "days_1_30": 32753.53,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Overdue"
+    },
+    {
+      "brand": "Nadimos Lebanese Restaurant",
+      "brand_pic": "NN",
+      "outstanding": 57270.81,
+      "not_due": 29684.4,
+      "days_1_30": 27586.41,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Overdue"
+    },
+    {
+      "brand": "Mae Noo Ayng",
+      "brand_pic": "MILD",
+      "outstanding": 40000.06,
+      "not_due": 20000.03,
+      "days_1_30": 20000.03,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Overdue"
+    },
+    {
+      "brand": "Indus",
+      "brand_pic": "ICE",
+      "outstanding": 35427.36,
+      "not_due": 17053.11,
+      "days_1_30": 18374.25,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Overdue"
+    },
+    {
+      "brand": "Cafe' Tartine",
+      "brand_pic": "SORN",
+      "outstanding": 14332.5,
+      "not_due": 6326.0,
+      "days_1_30": 8006.5,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Overdue"
+    },
+    {
+      "brand": "Al Saray",
+      "brand_pic": "ICE",
+      "outstanding": 109787.14,
+      "not_due": 109787.14,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Brasserie 9",
+      "brand_pic": "ICE",
+      "outstanding": 1481.9,
+      "not_due": 1481.9,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "D’ARK (EmQuartier) FAR",
+      "brand_pic": "ICE",
+      "outstanding": 35535.83,
+      "not_due": 35535.83,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Le Lapin Sandwich",
+      "brand_pic": "ICE",
+      "outstanding": 102385.94,
+      "not_due": 102385.94,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Pizza Mania",
+      "brand_pic": "ICE",
+      "outstanding": 124590.91,
+      "not_due": 124590.91,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Have a Zeed",
+      "brand_pic": "ICE",
+      "outstanding": 47653.7,
+      "not_due": 47653.7,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Fit2GO",
+      "brand_pic": "ICE",
+      "outstanding": 171550.9,
+      "not_due": 171550.9,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Onnie's Recipe",
+      "brand_pic": "ICE",
+      "outstanding": 40686.97,
+      "not_due": 40686.97,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Yang Yang",
+      "brand_pic": "ICE",
+      "outstanding": 19794.81,
+      "not_due": 19794.81,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Apollo Duck",
+      "brand_pic": "JIN",
+      "outstanding": 49609.2,
+      "not_due": 49609.2,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Sunbird Smoothie & Sandwich",
+      "brand_pic": "JIN",
+      "outstanding": 21191.25,
+      "not_due": 21191.25,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Elvis Suki",
+      "brand_pic": "JIN",
+      "outstanding": 58429.55,
+      "not_due": 58429.55,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Jungle Juice",
+      "brand_pic": "JIN",
+      "outstanding": 68809.78,
+      "not_due": 68809.78,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Brassica Doughnuts",
+      "brand_pic": "JIN",
+      "outstanding": 20910.0,
+      "not_due": 20910.0,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Sushi-Snack",
+      "brand_pic": "JIN",
+      "outstanding": 15876.87,
+      "not_due": 15876.87,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Crunch",
+      "brand_pic": "JIN",
+      "outstanding": 35909.79,
+      "not_due": 35909.79,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Every Clean food",
+      "brand_pic": "JIN",
+      "outstanding": 15013.58,
+      "not_due": 15013.58,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Cholos BKK",
+      "brand_pic": "KARN",
+      "outstanding": 72508.77,
+      "not_due": 72508.77,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Canton Paradise",
+      "brand_pic": "KARN",
+      "outstanding": 32454.69,
+      "not_due": 32454.69,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Chokdee Dimsum",
+      "brand_pic": "KARN",
+      "outstanding": 92876.07,
+      "not_due": 92876.07,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "So Vegan",
+      "brand_pic": "KARN",
+      "outstanding": 93878.08,
+      "not_due": 93878.08,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Kumtsu",
+      "brand_pic": "KARN",
+      "outstanding": 163371.02,
+      "not_due": 163371.02,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Zimt.BKK",
+      "brand_pic": "KARN",
+      "outstanding": 47943.38,
+      "not_due": 47943.38,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Vistro",
+      "brand_pic": "HOUSE",
+      "outstanding": 26981.71,
+      "not_due": 26981.71,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "LAVA Fire Grill",
+      "brand_pic": "HOUSE",
+      "outstanding": 17545.67,
+      "not_due": 17545.67,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "BIANCA Italian Restaurant",
+      "brand_pic": "HOUSE",
+      "outstanding": 81316.76000000001,
+      "not_due": 81316.76000000001,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Nanohana",
+      "brand_pic": "HOUSE",
+      "outstanding": 35966.11,
+      "not_due": 35966.11,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Holy Belly",
+      "brand_pic": "HOUSE",
+      "outstanding": 14856.06,
+      "not_due": 14856.06,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Larder",
+      "brand_pic": "HOUSE",
+      "outstanding": 8194.35,
+      "not_due": 8194.35,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Baan Ying",
+      "brand_pic": "HOUSE",
+      "outstanding": 48645.399999999994,
+      "not_due": 48645.399999999994,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Ruen Petch Suki",
+      "brand_pic": "MILD",
+      "outstanding": 41490.96,
+      "not_due": 41490.96,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Chu",
+      "brand_pic": "MILD",
+      "outstanding": 16818.7,
+      "not_due": 16818.7,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Crackhouse",
+      "brand_pic": "MILD",
+      "outstanding": 57293.97,
+      "not_due": 57293.97,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Oppa Daek",
+      "brand_pic": "MILD",
+      "outstanding": 50601.21,
+      "not_due": 50601.21,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Saigon Recipe",
+      "brand_pic": "NN",
+      "outstanding": 81760.03,
+      "not_due": 81760.03,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Chef Curry",
+      "brand_pic": "NN",
+      "outstanding": 1217.04,
+      "not_due": 1217.04,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "The Protein Box",
+      "brand_pic": "NN",
+      "outstanding": 49829.15,
+      "not_due": 49829.15,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Nico's Grill and Craft House",
+      "brand_pic": "NN",
+      "outstanding": 17739.12,
+      "not_due": 17739.12,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Menya Itto",
+      "brand_pic": "NN",
+      "outstanding": 12866.1,
+      "not_due": 12866.1,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Easy Health",
+      "brand_pic": "PATRICK",
+      "outstanding": 413576.81,
+      "not_due": 413576.81,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Giglio Trattoria Fiorentina",
+      "brand_pic": "PATRICK",
+      "outstanding": 55635.35,
+      "not_due": 55635.35,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Holey Artisan",
+      "brand_pic": "PATRICK",
+      "outstanding": 72157.88,
+      "not_due": 72157.88,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Panetti Pizza",
+      "brand_pic": "PATRICK",
+      "outstanding": 86391.86,
+      "not_due": 86391.86,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Ezoya",
+      "brand_pic": "PATRICK",
+      "outstanding": 80745.25,
+      "not_due": 80745.25,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Komugi",
+      "brand_pic": "PATRICK",
+      "outstanding": 9200.28,
+      "not_due": 9200.28,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Tonkatsu Koseki Bekkaku",
+      "brand_pic": "PATRICK",
+      "outstanding": 36461.61,
+      "not_due": 36461.61,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Kiwami",
+      "brand_pic": "PATRICK",
+      "outstanding": 3624.25,
+      "not_due": 3624.25,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Breakfast Story",
+      "brand_pic": "PATRICK",
+      "outstanding": 190440.74,
+      "not_due": 190440.74,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Easy Burger",
+      "brand_pic": "PATRICK",
+      "outstanding": 214901.35,
+      "not_due": 214901.35,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Aribica Specialty Coffee",
+      "brand_pic": "SINGH",
+      "outstanding": 7847.44,
+      "not_due": 7847.44,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Arabesque",
+      "brand_pic": "SINGH",
+      "outstanding": 33088.8,
+      "not_due": 33088.8,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Pastaioli",
+      "brand_pic": "SINGH",
+      "outstanding": 17071.35,
+      "not_due": 17071.35,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Saigon Sandwich",
+      "brand_pic": "SINGH",
+      "outstanding": 40966.2,
+      "not_due": 40966.2,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Softfood",
+      "brand_pic": "SINGH",
+      "outstanding": 39424.88,
+      "not_due": 39424.88,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "The Missing Burros",
+      "brand_pic": "SORN",
+      "outstanding": 9791.51,
+      "not_due": 9791.51,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "ZabZab 31",
+      "brand_pic": "SORN",
+      "outstanding": 25113.44,
+      "not_due": 25113.44,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Nine Pastry",
+      "brand_pic": "SORN",
+      "outstanding": 41891.05,
+      "not_due": 41891.05,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "L'Escargot Bistro",
+      "brand_pic": "SORN",
+      "outstanding": 824.0,
+      "not_due": 824.0,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Henryfry Fried Chicken",
+      "brand_pic": "SORN",
+      "outstanding": 10460.93,
+      "not_due": 10460.93,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Antico Fornaio",
+      "brand_pic": "SORN",
+      "outstanding": 34913.54,
+      "not_due": 34913.54,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Pani Sandwich And Bagel",
+      "brand_pic": "SORN",
+      "outstanding": 9989.02,
+      "not_due": 9989.02,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    },
+    {
+      "brand": "Service fee for Easy health - April' 26",
+      "brand_pic": "",
+      "outstanding": 8824.74,
+      "not_due": 8824.74,
+      "days_1_30": 0.0,
+      "days_31_60": 0.0,
+      "days_61_90": 0.0,
+      "days_90_plus": 0.0,
+      "status": "Current"
+    }
+  ],
+  "unpaid_invoices_grouped": [
+    {
+      "company": "",
+      "brand": NaN,
+      "brand_pic": "",
+      "months": "Balance Total",
+      "invoices": "",
+      "amount": 5232581.120000001,
+      "invoice_count": 0
+    },
+    {
+      "company": "บริษัทกอร์เมท์ อินโนเวชัน จำกัด",
+      "brand": "Easy Health",
+      "brand_pic": "PATRICK",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400017",
+      "amount": 413576.81,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทโกรท ไบต์ กรุ๊ป จำกัด",
+      "brand": "Easy Burger",
+      "brand_pic": "PATRICK",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400010, IV-20260400009",
+      "amount": 214901.35,
+      "invoice_count": 2
+    },
+    {
+      "company": "บริษัทซีบี ทีเอ เทรดดิ้ง จำกัด",
+      "brand": "La Meow",
+      "brand_pic": "MILD",
+      "months": "31/03/2026, 30/04/2026",
+      "invoices": "IV-20260300061, IV-20260400061",
+      "amount": 206449.55,
+      "invoice_count": 2
+    },
+    {
+      "company": "บริษัทเบรคฟาสต์ สตอรี่ จำกัด",
+      "brand": "Breakfast Story",
+      "brand_pic": "PATRICK",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400075",
+      "amount": 190440.74,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัททูโก แบรนด์ จำกัด",
+      "brand": "Fit2GO",
+      "brand_pic": "ICE",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400070",
+      "amount": 171550.9,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทคุ้มสึ จำกัด",
+      "brand": "Kumtsu",
+      "brand_pic": "KARN",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400079",
+      "amount": 163371.02,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทเอ้ก เดลี่ จำกัด",
+      "brand": "Eggday",
+      "brand_pic": "JIN",
+      "months": "28/02/2026, 31/03/2026",
+      "invoices": "IV-20260200055, IV-20260300052",
+      "amount": 137635.25,
+      "invoice_count": 2
+    },
+    {
+      "company": "ห้างหุ้นส่วนจำกัดออร์แกนนิค เฟรช โปรดิวซ์ ",
+      "brand": "Bella Madre Pizza",
+      "brand_pic": "KARN",
+      "months": "31/03/2026, 30/04/2026",
+      "invoices": "IV-20260300068, IV-20260400068",
+      "amount": 135702.7,
+      "invoice_count": 2
+    },
+    {
+      "company": "บริษัทฮันเตอร์ บีบี เรสเตอรอง จำกัด",
+      "brand": "Hunter Poke",
+      "brand_pic": "JIN",
+      "months": "31/03/2026, 30/04/2026",
+      "invoices": "IV-20260300007, IV-20260400011",
+      "amount": 130781.09999999999,
+      "invoice_count": 2
+    },
+    {
+      "company": "บริษัทพิซซ่าเมเนีย จำกัด",
+      "brand": "Pizza Mania",
+      "brand_pic": "ICE",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400052",
+      "amount": 124590.91,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทบีเอซี กูร์เมท์ เฮ้าส์ จำกัด",
+      "brand": "Al Saray",
+      "brand_pic": "ICE",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400002",
+      "amount": 109787.14,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทเดอะ บาวตี้ กรุ๊ป จำกัด",
+      "brand": "Five Dollar Philly Cheese Steaks",
+      "brand_pic": "ICE",
+      "months": "30/06/2025, 31/07/2025, 31/08/2025",
+      "invoices": "IV-20250600045, IV-20250700049, IV-20250800044",
+      "amount": 107652.14,
+      "invoice_count": 3
+    },
+    {
+      "company": "บริษัทเลอ ลาพิน แซนวิช เดลิเวอร์รี่ จำกัด",
+      "brand": "Le Lapin Sandwich",
+      "brand_pic": "ICE",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400051",
+      "amount": 102385.94,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทพิซซ่า เอ็กซ์ จำกัด",
+      "brand": "Kaprao Fury",
+      "brand_pic": "SORN",
+      "months": "31/03/2026, 30/04/2026",
+      "invoices": "IV-20260300067, IV-20260400067",
+      "amount": 101362.58,
+      "invoice_count": 2
+    },
+    {
+      "company": "บริษัทไทยวีแกน จำกัด",
+      "brand": "So Vegan",
+      "brand_pic": "KARN",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400043",
+      "amount": 93878.08,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทโชคดีติ่มซำ คอร์ปอเรชั่น จำกัด",
+      "brand": "Chokdee Dimsum",
+      "brand_pic": "KARN",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400042",
+      "amount": 92876.07,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทชับบี้ โด จำกัด",
+      "brand": "Chubby Dough",
+      "brand_pic": "HOUSE",
+      "months": "28/02/2026, 31/03/2026, 30/04/2026",
+      "invoices": "IV-20260200075, IV-20260300072, IV-20260400071",
+      "amount": 89709.59,
+      "invoice_count": 3
+    },
+    {
+      "company": "บริษัทพิซซ่า 31 จำกัด",
+      "brand": "Panetti Pizza",
+      "brand_pic": "PATRICK",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400024",
+      "amount": 86391.86,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทไซ่ง่อน เรซิพี จำกัด",
+      "brand": "Saigon Recipe",
+      "brand_pic": "NN",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400012",
+      "amount": 81760.03,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทบิอันก้า โฮลดิ้งส์ จำกัด",
+      "brand": "BIANCA Italian Restaurant",
+      "brand_pic": "HOUSE",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400019, IV-20260400062, IV-20260400063, IV-20260400013",
+      "amount": 81316.76000000001,
+      "invoice_count": 4
+    },
+    {
+      "company": "บริษัทเอโซย่า (ประเทศไทย) จำกัด",
+      "brand": "Ezoya",
+      "brand_pic": "PATRICK",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400030",
+      "amount": 80745.25,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทอินโนเวทีฟ ฟู๊ด ทรัคส์ จำกัด",
+      "brand": "Cholos BKK",
+      "brand_pic": "KARN",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400008",
+      "amount": 72508.77,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทโฮลี่ อาร์ทิสัน จำกัด",
+      "brand": "Holey Artisan",
+      "brand_pic": "PATRICK",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400022",
+      "amount": 72157.88,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทฟรุ๊ตฟูล แอนด์ เฟรนด์ จำกัด",
+      "brand": "Self Smoothie",
+      "brand_pic": "KARN",
+      "months": "31/03/2026, 30/04/2026",
+      "invoices": "IV-20260300010, IV-20260400014",
+      "amount": 71396.06,
+      "invoice_count": 2
+    },
+    {
+      "company": "บริษัทสะแตกยำ กรุ๊ป จำกัด",
+      "brand": "StrackYum",
+      "brand_pic": "SINGH",
+      "months": "31/03/2026, 30/04/2026",
+      "invoices": "IV-20260300024, IV-20260400028",
+      "amount": 71055.69,
+      "invoice_count": 2
+    },
+    {
+      "company": "บริษัทฟู๊ด เชนเจอร์ จำกัด",
+      "brand": "Jungle Juice",
+      "brand_pic": "JIN",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400078",
+      "amount": 68809.78,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทแอสโซซิเอทส์ บาย ช้อยซ์ จำกัด",
+      "brand": "Bangkok Bob's",
+      "brand_pic": "MILD",
+      "months": "31/03/2026, 30/04/2026",
+      "invoices": "IV-20260300057, IV-20260400057",
+      "amount": 67292.62,
+      "invoice_count": 2
+    },
+    {
+      "company": "บริษัททูเอสทูพี กรุ๊ป จำกัด",
+      "brand": "Fish Fat Bowls",
+      "brand_pic": "SINGH",
+      "months": "31/03/2026, 30/04/2026",
+      "invoices": "IV-20260300078, IV-20260400077",
+      "amount": 66590.93,
+      "invoice_count": 2
+    },
+    {
+      "company": "บริษัทสติ ฟู้ด จำกัด",
+      "brand": "Sati",
+      "brand_pic": "HOUSE",
+      "months": "31/03/2026, 30/04/2026",
+      "invoices": "IV-20260300034, IV-20260400037",
+      "amount": 65793.66,
+      "invoice_count": 2
+    },
+    {
+      "company": "บริษัทอเล็กซานเดอร์ส เยอรมัน อีทเทอรี่ จำกัด",
+      "brand": "AGE Burgers",
+      "brand_pic": "SINGH",
+      "months": "31/01/2026, 28/02/2026, 31/03/2026",
+      "invoices": "IV-20260100006, IV-20260200006, IV-20260300005",
+      "amount": 61842.05,
+      "invoice_count": 3
+    },
+    {
+      "company": "บริษัทซิบบาไรต์ จำกัด",
+      "brand": "El Mercado",
+      "brand_pic": "NN",
+      "months": "30/04/2024, 31/05/2024, 30/06/2024",
+      "invoices": "IV-20240400007, IV-20240500007, IV-20240600006",
+      "amount": 58124.54000000001,
+      "invoice_count": 3
+    },
+    {
+      "company": "บริษัทบัตเตอร์มิลค์ จำกัด",
+      "brand": "Crackhouse",
+      "brand_pic": "MILD",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400085",
+      "amount": 57293.97,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทนาดีโมส์ เลบานีส เรสเทอรองท์ จำกัด",
+      "brand": "Nadimos Lebanese Restaurant",
+      "brand_pic": "NN",
+      "months": "31/03/2026, 30/04/2026",
+      "invoices": "IV-20260300058, IV-20260400058",
+      "amount": 57270.81,
+      "invoice_count": 2
+    },
+    {
+      "company": "บริษัทจิกลิโอ จำกัด",
+      "brand": "Giglio Trattoria Fiorentina",
+      "brand_pic": "PATRICK",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400020",
+      "amount": 55635.35,
+      "invoice_count": 1
+    },
+    {
+      "company": "คุณธนพงษ์ พิสิฐสิฬษ์ ",
+      "brand": "Grow Tea.studio",
+      "brand_pic": "JIN",
+      "months": "30/09/2025, 31/10/2025, 30/11/2025, 30/12/2025",
+      "invoices": "IV-20250900041, IV-20251000040, IV-20251100042, IV-20251200039",
+      "amount": 51490.5,
+      "invoice_count": 4
+    },
+    {
+      "company": "บริษัทฟู้ดมี จำกัด",
+      "brand": "Oppa Daek",
+      "brand_pic": "MILD",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400086",
+      "amount": 50601.21,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทเอ็ม ฮอสปิตัลลิตี้กรุ๊ป จำกัด",
+      "brand": "The Protein Box",
+      "brand_pic": "NN",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400005",
+      "amount": 49829.15,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทฟู้ดดิฟายด์ จำกัด",
+      "brand": "Apollo Duck",
+      "brand_pic": "JIN",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400036",
+      "amount": 49609.2,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทเบรด เฟรนด์ จำกัด",
+      "brand": "Zimt.BKK",
+      "brand_pic": "KARN",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400016",
+      "amount": 47943.38,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทฟรุ้ตส์ ฟูล จำกัด",
+      "brand": "Grow Tea.studio",
+      "brand_pic": "JIN",
+      "months": "31/10/2025, 30/11/2025, 30/12/2025",
+      "invoices": "IV-20251000037, IV-20251100039, IV-20251200036",
+      "amount": 43270.369999999995,
+      "invoice_count": 3
+    },
+    {
+      "company": "บริษัทเบค เลิฟ จำกัด",
+      "brand": "Nine Pastry",
+      "brand_pic": "SORN",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400038",
+      "amount": 41891.05,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทเรือนเพชรสุกี้ จำกัด",
+      "brand": "Ruen Petch Suki",
+      "brand_pic": "MILD",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400027",
+      "amount": 41490.96,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัททีแอนด์ที เอเวอร์ริช จำกัด",
+      "brand": "Saigon Sandwich",
+      "brand_pic": "SINGH",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400072",
+      "amount": 40966.2,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทตีรโปรดักส์ จำกัด",
+      "brand": "Onnie's Recipe",
+      "brand_pic": "ICE",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400060",
+      "amount": 40686.97,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทซอฟท์ฟู๊ดส์ (ประเทศไทย) จำกัด",
+      "brand": "Softfood",
+      "brand_pic": "SINGH",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400039",
+      "amount": 39424.88,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัท198 คิทเช่น จำกัด",
+      "brand": "Have a Zeed",
+      "brand_pic": "ICE",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400049, IV-20260400050, IV-20260400048, IV-20260400047",
+      "amount": 36813.61,
+      "invoice_count": 4
+    },
+    {
+      "company": "บริษัทเบกคาคุ จำกัด",
+      "brand": "Tonkatsu Koseki Bekkaku",
+      "brand_pic": "PATRICK",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400031",
+      "amount": 36461.61,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทไทเรียว ฟู้ด จำกัด",
+      "brand": "Nanohana",
+      "brand_pic": "HOUSE",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400066",
+      "amount": 35966.11,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทธานอส พาวเวอร์ จำกัด",
+      "brand": "Crunch",
+      "brand_pic": "JIN",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400099",
+      "amount": 35909.79,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทเอฟเออาร์ (ประเทศไทย) จำกัด",
+      "brand": "D’ARK (EmQuartier) FAR",
+      "brand_pic": "ICE",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400003",
+      "amount": 35535.83,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทโกลบอล กูรเม่ ซิสเต็มส์ จำกัด",
+      "brand": "Indus",
+      "brand_pic": "ICE",
+      "months": "31/03/2026, 30/04/2026",
+      "invoices": "IV-20260300059, IV-20260400059",
+      "amount": 35427.36,
+      "invoice_count": 2
+    },
+    {
+      "company": "บริษัทเอเอฟ แอนด์ โค จำกัด",
+      "brand": "Antico Fornaio",
+      "brand_pic": "SORN",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400082",
+      "amount": 34913.54,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทฟู้ดโนเวชั่น จำกัด",
+      "brand": "Canton Paradise",
+      "brand_pic": "KARN",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400033",
+      "amount": 32454.69,
+      "invoice_count": 1
+    },
+    {
+      "company": "คุณธนภา ศรัณยปภาวาณิชย์ ",
+      "brand": "Elvis Suki",
+      "brand_pic": "JIN",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400080",
+      "amount": 32245.89,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทเจ อาร์ ฮอสพิทอลลิตี้ จำกัด",
+      "brand": "Content marketing service  FEB 2026",
+      "brand_pic": "0",
+      "months": "Mar'26",
+      "invoices": "IV-20260200003",
+      "amount": 32100.0,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทเจ อาร์ ฮอสพิทอลลิตี้ จำกัด",
+      "brand": "Content marketing service  JAN 2026",
+      "brand_pic": "0",
+      "months": "Jun'26",
+      "invoices": "IV-20260100002",
+      "amount": 32100.0,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทบ้านหญิง กรุ๊ป จำกัด",
+      "brand": "Baan Ying",
+      "brand_pic": "HOUSE",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400093",
+      "amount": 29935.01,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทวิสโตร จำกัด",
+      "brand": "Vistro",
+      "brand_pic": "HOUSE",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400021",
+      "amount": 26981.71,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทเดอะ บาวตี้ กรุ๊ป จำกัด",
+      "brand": "Content marketing service  Aug 2025",
+      "brand_pic": "0",
+      "months": "Jan'25",
+      "invoices": "IV-20250800001",
+      "amount": 26750.0,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทรุ่งทรัพย์ 168 จำกัด",
+      "brand": "Content marketing service  July 15 - Aug 15 2025",
+      "brand_pic": "0",
+      "months": "15/07/2025",
+      "invoices": "IV-20250700003",
+      "amount": 26750.0,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทเดอะ บาวตี้ กรุ๊ป จำกัด",
+      "brand": "Content marketing service  Sep 2025",
+      "brand_pic": "0",
+      "months": "Jan'25",
+      "invoices": "IV-20250900004",
+      "amount": 26750.0,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทไชยยศ แลนด์ จำกัด",
+      "brand": "Charcoal",
+      "brand_pic": "KARN",
+      "months": "30/11/2024, 30/04/2026",
+      "invoices": "IV-20241100035, IV-20260400029",
+      "amount": 26236.309999999998,
+      "invoice_count": 2
+    },
+    {
+      "company": "คุณธนพัฒ ภูดิศพงศ์ ",
+      "brand": "Elvis Suki",
+      "brand_pic": "JIN",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400081",
+      "amount": 26183.66,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทแซ่บแซ่บ อีสานฟู้ด แอนด์ บาร์ จำกัด",
+      "brand": "ZabZab 31",
+      "brand_pic": "SORN",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400035",
+      "amount": 25113.44,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทซันเบิร์ดฟู๊ดส์ จำกัด",
+      "brand": "Sunbird Smoothie & Sandwich",
+      "brand_pic": "JIN",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400073",
+      "amount": 21191.25,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทบราสสิก้า แฟมิลี่ จำกัด",
+      "brand": "Brassica Doughnuts",
+      "brand_pic": "JIN",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400083",
+      "amount": 20910.0,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทอราเบสค์ จำกัด",
+      "brand": "Arabesque",
+      "brand_pic": "SINGH",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400034",
+      "amount": 20360.9,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทวาณิก คอร์ปอเรชั่น จำกัด",
+      "brand": "Yang Yang",
+      "brand_pic": "ICE",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400094",
+      "amount": 19794.81,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทบ้านหญิง เรสทัวรองท์ จำกัด",
+      "brand": "Baan Ying",
+      "brand_pic": "HOUSE",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400092",
+      "amount": 18710.39,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทเอ็ม ฮอสปิตัลลิตี้กรุ๊ป จำกัด",
+      "brand": "Nico's Grill and Craft House",
+      "brand_pic": "NN",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400006",
+      "amount": 17739.12,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทลาวา เอเชี่ยน บิสโทร แอนด์ บาร์ จำกัด",
+      "brand": "LAVA Fire Grill",
+      "brand_pic": "HOUSE",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400041",
+      "amount": 17545.67,
+      "invoice_count": 1
+    },
+    {
+      "company": "คุณภัทรา บริบูรณ์ ",
+      "brand": "Mae Noo Ayng",
+      "brand_pic": "MILD",
+      "months": "31/03/2026, 30/04/2026",
+      "invoices": "IV-20260300097, IV-20260400098",
+      "amount": 17142.88,
+      "invoice_count": 2
+    },
+    {
+      "company": "บริษัทอิมพาสโต จำกัด",
+      "brand": "Pastaioli",
+      "brand_pic": "SINGH",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400053",
+      "amount": 17071.35,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทฮอท ช็อกโกแลต จำกัด",
+      "brand": "Chu",
+      "brand_pic": "MILD",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400084",
+      "amount": 16818.7,
+      "invoice_count": 1
+    },
+    {
+      "company": "คุณสมบูรณ์ สุขแก้ว ",
+      "brand": "Sushi-Snack",
+      "brand_pic": "JIN",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400088",
+      "amount": 15876.87,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทธานอส พาวเวอร์ จำกัด",
+      "brand": "Every Clean food",
+      "brand_pic": "JIN",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400100",
+      "amount": 15013.58,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทโฮลี่ เบลลี่ อีเอ็มเอส จำกัด",
+      "brand": "Holy Belly",
+      "brand_pic": "HOUSE",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400040",
+      "amount": 14856.06,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทไมซิกส์ (ไทยแลนด์) จำกัด",
+      "brand": "Cafe' Tartine",
+      "brand_pic": "SORN",
+      "months": "31/03/2026, 30/04/2026",
+      "invoices": "IV-20260300014, IV-20260400018",
+      "amount": 14332.5,
+      "invoice_count": 2
+    },
+    {
+      "company": "บริษัทเมนยะ อิตโต (ประเทศไทย) จำกัด",
+      "brand": "Menya Itto",
+      "brand_pic": "NN",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400023",
+      "amount": 12866.1,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทเอชเอสเอ็ม มอร์แกน เทรดดิ้ง จำกัด",
+      "brand": "Arabesque",
+      "brand_pic": "SINGH",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400056",
+      "amount": 12727.9,
+      "invoice_count": 1
+    },
+    {
+      "company": "คุณพลทะนี บริบูรณ์ ",
+      "brand": "Mae Noo Ayng",
+      "brand_pic": "MILD",
+      "months": "31/03/2026, 30/04/2026",
+      "invoices": "IV-20260300095, IV-20260400095",
+      "amount": 11428.58,
+      "invoice_count": 2
+    },
+    {
+      "company": "บริษัท198 คูซีน จำกัด",
+      "brand": "Have a Zeed",
+      "brand_pic": "ICE",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400046, IV-20260400045, IV-20260400044, IV-20260400065",
+      "amount": 10840.09,
+      "invoice_count": 4
+    },
+    {
+      "company": "บริษัทเดอะ พรอสเพอร์ เดเวลลอปเมนท์ จำกัด",
+      "brand": "Pani Sandwich And Bagel",
+      "brand_pic": "SORN",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400087",
+      "amount": 9989.02,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทเดอะมิซซิ่งด็องกี้ จำกัด",
+      "brand": "The Missing Burros",
+      "brand_pic": "SORN",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400025",
+      "amount": 9791.51,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทดี-เวอร์ค สไตล์ จำกัด",
+      "brand": "Komugi",
+      "brand_pic": "PATRICK",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400026",
+      "amount": 9200.28,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทที่ปรึกษาติณณา จำกัด",
+      "brand": "Service fee for Easy health - April' 26",
+      "brand_pic": "",
+      "months": "Mar'26",
+      "invoices": "IV-20260400001",
+      "amount": 8824.74,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทลาร์เดอร์ ทู จำกัด",
+      "brand": "Larder",
+      "brand_pic": "HOUSE",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400091",
+      "amount": 8194.35,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทนัมเบอร์ 42 จำกัด",
+      "brand": "Aribica Specialty Coffee",
+      "brand_pic": "SINGH",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400069",
+      "amount": 7847.44,
+      "invoice_count": 1
+    },
+    {
+      "company": "คุณช่อฉัตร เอี่ยมละออ ",
+      "brand": "Mae Noo Ayng",
+      "brand_pic": "MILD",
+      "months": "31/03/2026, 30/04/2026",
+      "invoices": "IV-20260300098, IV-20260400096",
+      "amount": 5714.3,
+      "invoice_count": 2
+    },
+    {
+      "company": "คุณณัฐนนท์ สุขสมกิจ ",
+      "brand": "Mae Noo Ayng",
+      "brand_pic": "MILD",
+      "months": "31/03/2026, 30/04/2026",
+      "invoices": "IV-20260300096, IV-20260400097",
+      "amount": 5714.3,
+      "invoice_count": 2
+    },
+    {
+      "company": "บริษัทเอชโฟร์เอ็ม จำกัด",
+      "brand": "Henryfry Fried Chicken",
+      "brand_pic": "SORN",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400090",
+      "amount": 5427.1,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทเฮนรี่ฟราย จำกัด",
+      "brand": "Henryfry Fried Chicken",
+      "brand_pic": "SORN",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400089",
+      "amount": 5033.83,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทเบกคาคุ จำกัด",
+      "brand": "Kiwami",
+      "brand_pic": "PATRICK",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400032",
+      "amount": 3624.25,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทบีเอซี กูร์เมท์ เฮ้าส์ จำกัด",
+      "brand": "Brasserie 9",
+      "brand_pic": "ICE",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400007",
+      "amount": 1481.9,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทเอ็ม ฮอสปิตัลลิตี้กรุ๊ป จำกัด",
+      "brand": "Chef Curry",
+      "brand_pic": "NN",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400004",
+      "amount": 1217.04,
+      "invoice_count": 1
+    },
+    {
+      "company": "บริษัทเกรท เอิร์ธ อินเตอร์เนชั่นแนล จำกัด",
+      "brand": "L'Escargot Bistro",
+      "brand_pic": "SORN",
+      "months": "30/04/2026",
+      "invoices": "IV-20260400055",
+      "amount": 824.0,
+      "invoice_count": 1
+    }
+  ],
+  "brand_pics": [
+    "0",
+    "HOUSE",
+    "ICE",
+    "JIN",
+    "KARN",
+    "MILD",
+    "NN",
+    "PATRICK",
+    "SINGH",
+    "SORN"
+  ]
+};
+function fmt(v){return'฿'+Math.round(v).toLocaleString()}
+document.getElementById('total').textContent=fmt(D.summary.total_outstanding);
+document.getElementById('notdue').textContent=fmt(D.summary.not_due);
+document.getElementById('days30').textContent=fmt(D.summary.days_1_30);
+document.getElementById('days90').textContent=fmt(D.summary.days_90_plus);
+D.brand_pics.forEach(p=>{
+const o1=document.createElement('option');o1.value=p.toLowerCase();o1.textContent=p;document.getElementById('picFilter').appendChild(o1);
+const o2=document.createElement('option');o2.value=p.toLowerCase();o2.textContent=p;document.getElementById('invFilter').appendChild(o2);
+});
+document.getElementById('brands').innerHTML=D.brands.map(b=>`<div class="brand-item" data-pic="${b.brand_pic.toLowerCase()}" data-s="${b.status.toLowerCase()}"><div class="brand-name">${b.brand}</div><div class="brand-pic">${b.brand_pic||'-'}</div><div class="amount">${fmt(b.outstanding)}</div><div class="amount">${fmt(b.not_due)}</div><div class="amount">${fmt(b.days_1_30)}</div><div class="amount">${fmt(b.days_31_60)}</div><div class="amount">${fmt(b.days_61_90)}</div><div class="amount">${fmt(b.days_90_plus)}</div><div><span class="status-badge status-${b.status.toLowerCase()}">${b.status}</span></div></div>`).join('');
+document.getElementById('invoices').innerHTML=D.unpaid_invoices_grouped.map(i=>`<tr data-pic="${i.brand_pic.toLowerCase()}"><td><strong>${i.brand||'N/A'}</strong><br><small style="color:#666">${i.company||'N/A'}</small></td><td>${i.brand_pic||'-'}</td><td>${i.months||'N/A'}</td><td>${i.invoices||'N/A'}</td><td style="text-align:right;font-weight:600">${fmt(i.amount)}</td></tr>`).join('');
+document.getElementById('picFilter').onchange=document.getElementById('statusFilter').onchange=function(){
+const p=document.getElementById('picFilter').value,s=document.getElementById('statusFilter').value;
+document.querySelectorAll('.brand-item:not(.brand-item-header)').forEach(e=>{
+e.style.display=((!p||e.getAttribute('data-pic')===p)&&(!s||e.getAttribute('data-s')===s))?'grid':'none';
+});};
+document.getElementById('invFilter').onchange=function(){
+const p=this.value;
+document.querySelectorAll('#invoices tr').forEach(e=>{e.style.display=(!p||e.getAttribute('data-pic')===p)?'':'none';});
+};
+</script>
+</body>
+</html>
