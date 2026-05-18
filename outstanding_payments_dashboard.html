@@ -4,6 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>📊 Outstanding Payments Dashboard</title>
+    
+    <!-- Open Graph / Facebook / Line -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="📊 Outstanding Payments Dashboard">
+    <meta property="og:description" content="Weekly AR Aging Report">
+    <meta property="og:url" content="https://nicknackellah.github.io/-Outstanding-Payments-Dashboard/outstanding_payments_dashboard.html">
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="📊 Outstanding Payments Dashboard">
+    <meta name="twitter:description" content="Weekly AR Aging Report">
+    
+    <!-- Prevent caching -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -76,7 +93,7 @@
     <div class="container">
         <div class="header">
             <h1>📊 Outstanding Payments Dashboard</h1>
-            <p>Weekly AR Aging Report</p>
+            <p>Weekly AR Aging Report - Growth & Platform Management</p>
         </div>
         <div class="summary-cards">
             <div class="card"><div class="card-title">Total Outstanding</div><div class="card-value" id="total">฿0</div><div class="card-subtitle">Across all brands</div></div>
@@ -111,25 +128,14 @@
 <script>
 const D={
   "summary": {
-    "total_outstanding": 4741500.0,
-    "not_due": 3865913.09,
+    "total_outstanding": 4480573.12,
+    "not_due": 3857088.3499999996,
     "days_1_30": 358220.43,
-    "days_31_60": 109247.28,
-    "days_61_90": 54725.65,
-    "days_90_plus": 353393.55000000005
+    "days_31_60": 77147.28,
+    "days_61_90": 22625.65,
+    "days_90_plus": 165491.41
   },
   "brands": [
-    {
-      "brand": "Five Dollar Philly Cheese Steaks",
-      "brand_pic": "ICE",
-      "outstanding": 107652.14,
-      "not_due": 0.0,
-      "days_1_30": 0.0,
-      "days_31_60": 0.0,
-      "days_61_90": 0.0,
-      "days_90_plus": 107652.14,
-      "status": "Overdue"
-    },
     {
       "brand": "Grow Tea.studio",
       "brand_pic": "JIN",
@@ -153,39 +159,6 @@ const D={
       "status": "Overdue"
     },
     {
-      "brand": "Content marketing service  July 15 - Aug 15 2025",
-      "brand_pic": "0",
-      "outstanding": 26750.0,
-      "not_due": 0.0,
-      "days_1_30": 0.0,
-      "days_31_60": 0.0,
-      "days_61_90": 0.0,
-      "days_90_plus": 26750.0,
-      "status": "Overdue"
-    },
-    {
-      "brand": "Content marketing service  Aug 2025",
-      "brand_pic": "0",
-      "outstanding": 26750.0,
-      "not_due": 0.0,
-      "days_1_30": 0.0,
-      "days_31_60": 0.0,
-      "days_61_90": 0.0,
-      "days_90_plus": 26750.0,
-      "status": "Overdue"
-    },
-    {
-      "brand": "Content marketing service  Sep 2025",
-      "brand_pic": "0",
-      "outstanding": 26750.0,
-      "not_due": 0.0,
-      "days_1_30": 0.0,
-      "days_31_60": 0.0,
-      "days_61_90": 0.0,
-      "days_90_plus": 26750.0,
-      "status": "Overdue"
-    },
-    {
       "brand": "Charcoal",
       "brand_pic": "KARN",
       "outstanding": 26236.309999999998,
@@ -194,17 +167,6 @@ const D={
       "days_31_60": 0.0,
       "days_61_90": 0.0,
       "days_90_plus": 12606.0,
-      "status": "Overdue"
-    },
-    {
-      "brand": "Content marketing service  JAN 2026",
-      "brand_pic": "0",
-      "outstanding": 32100.0,
-      "not_due": 0.0,
-      "days_1_30": 0.0,
-      "days_31_60": 0.0,
-      "days_61_90": 32100.0,
-      "days_90_plus": 0.0,
       "status": "Overdue"
     },
     {
@@ -225,17 +187,6 @@ const D={
       "not_due": 0.0,
       "days_1_30": 79471.87,
       "days_31_60": 58163.38,
-      "days_61_90": 0.0,
-      "days_90_plus": 0.0,
-      "status": "Overdue"
-    },
-    {
-      "brand": "Content marketing service  FEB 2026",
-      "brand_pic": "0",
-      "outstanding": 32100.0,
-      "not_due": 0.0,
-      "days_1_30": 0.0,
-      "days_31_60": 32100.0,
       "days_61_90": 0.0,
       "days_90_plus": 0.0,
       "status": "Overdue"
@@ -327,17 +278,6 @@ const D={
       "days_61_90": 0.0,
       "days_90_plus": 0.0,
       "status": "Overdue"
-    },
-    {
-      "brand": "Service fee for Easy health - April' 26",
-      "brand_pic": "0",
-      "outstanding": 8824.74,
-      "not_due": 8824.74,
-      "days_1_30": 0.0,
-      "days_31_60": 0.0,
-      "days_61_90": 0.0,
-      "days_90_plus": 0.0,
-      "status": "Current"
     },
     {
       "brand": "Easy Health",
@@ -1105,15 +1045,6 @@ const D={
       "invoice_count": 1
     },
     {
-      "company": "บริษัทเดอะ บาวตี้ กรุ๊ป จำกัด",
-      "brand": "Five Dollar Philly Cheese Steaks",
-      "brand_pic": "ICE",
-      "months": "30/06/2025, 31/07/2025, 31/08/2025",
-      "invoices": "IV-20250600045, IV-20250700049, IV-20250800044",
-      "amount": 107652.14,
-      "invoice_count": 3
-    },
-    {
       "company": "บริษัทเลอ ลาพิน แซนวิช เดลิเวอร์รี่ จำกัด",
       "brand": "Le Lapin Sandwich",
       "brand_pic": "ICE",
@@ -1456,24 +1387,6 @@ const D={
       "invoice_count": 1
     },
     {
-      "company": "บริษัทเจ อาร์ ฮอสพิทอลลิตี้ จำกัด",
-      "brand": "Content marketing service  FEB 2026",
-      "brand_pic": "0",
-      "months": "Mar'26",
-      "invoices": "IV-20260200003",
-      "amount": 32100.0,
-      "invoice_count": 1
-    },
-    {
-      "company": "บริษัทเจ อาร์ ฮอสพิทอลลิตี้ จำกัด",
-      "brand": "Content marketing service  JAN 2026",
-      "brand_pic": "0",
-      "months": "Jun'26",
-      "invoices": "IV-20260100002",
-      "amount": 32100.0,
-      "invoice_count": 1
-    },
-    {
       "company": "บริษัทฟรุ๊ตฟูล แอนด์ เฟรนด์ จำกัด",
       "brand": "Self Smoothie",
       "brand_pic": "KARN",
@@ -1516,33 +1429,6 @@ const D={
       "months": "30/04/2026",
       "invoices": "IV-20260400021",
       "amount": 26981.71,
-      "invoice_count": 1
-    },
-    {
-      "company": "บริษัทเดอะ บาวตี้ กรุ๊ป จำกัด",
-      "brand": "Content marketing service  Aug 2025",
-      "brand_pic": "0",
-      "months": "Jan'25",
-      "invoices": "IV-20250800001",
-      "amount": 26750.0,
-      "invoice_count": 1
-    },
-    {
-      "company": "บริษัทรุ่งทรัพย์ 168 จำกัด",
-      "brand": "Content marketing service  July 15 - Aug 15 2025",
-      "brand_pic": "0",
-      "months": "15/07/2025",
-      "invoices": "IV-20250700003",
-      "amount": 26750.0,
-      "invoice_count": 1
-    },
-    {
-      "company": "บริษัทเดอะ บาวตี้ กรุ๊ป จำกัด",
-      "brand": "Content marketing service  Sep 2025",
-      "brand_pic": "0",
-      "months": "Jan'25",
-      "invoices": "IV-20250900004",
-      "amount": 26750.0,
       "invoice_count": 1
     },
     {
@@ -1744,15 +1630,6 @@ const D={
       "invoice_count": 1
     },
     {
-      "company": "บริษัทที่ปรึกษาติณณา จำกัด",
-      "brand": "Service fee for Easy health - April' 26",
-      "brand_pic": "0",
-      "months": "Mar'26",
-      "invoices": "IV-20260400001",
-      "amount": 8824.74,
-      "invoice_count": 1
-    },
-    {
       "company": "บริษัทลาร์เดอร์ ทู จำกัด",
       "brand": "Larder",
       "brand_pic": "HOUSE",
@@ -1844,7 +1721,6 @@ const D={
     }
   ],
   "brand_pics": [
-    "0",
     "HOUSE",
     "ICE",
     "JIN",
